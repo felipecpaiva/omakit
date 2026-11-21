@@ -4,7 +4,7 @@
         r.finish("switch", out_dir="branding/demo", width=960)
 The region is in logical (layout) pixels, which is what grim -g takes. scale sets the frame size: 1 gives frames at
 the logical size, "native" uses the monitor scale for full resolution frames (needed when a gifkit compose crops in
-physical pixels)."""
+physical pixels). look() switches region and scale mid recording, for a zoom onto one part."""
 import os, shutil, tempfile, threading, time
 
 from . import gifkit
@@ -21,13 +21,23 @@ def region_arg(region):
 class Recorder:
     def __init__(self, region, scale=1, cursor=False, quality=88, hypr=None):
         self.h = hypr or Hypr()
-        self.region, self.quality, self.cursor = region_arg(region), quality, cursor
-        self.scale = self.h.monitor()["scale"] if scale == "native" else scale
+        self.quality, self.cursor = quality, cursor
+        self.look(region, scale)
         self.frames, self.marks, self.stop, self.th = [], [], threading.Event(), None
         self.dir = tempfile.mkdtemp(prefix="omakit-frames-")
 
+    def look(self, region, scale=1):
+        """Switch the captured region and scale, also mid recording. Region and scale change together (one tuple), so a
+        frame is never taken with one new and one old. Keep the output size: w * scale and h * scale equal to the old
+        ones (for example half the region at scale 2 for a zoom), or ffmpeg gets frames of two sizes."""
+        self.view = (region_arg(region), self.h.monitor()["scale"] if scale == "native" else scale)
+
+    region = property(lambda self: self.view[0])
+    scale = property(lambda self: self.view[1])
+
     def argv(self, path):
-        return ["grim", "-s", f"{self.scale:g}", *(["-c"] if self.cursor else []), "-g", self.region,
+        region, scale = self.view
+        return ["grim", "-s", f"{scale:g}", *(["-c"] if self.cursor else []), "-g", region,
                 "-t", "jpeg", "-q", str(self.quality), path]
 
     def __enter__(self):

@@ -47,7 +47,8 @@ class Hypr:
 
     def monitor(self, name=None):
         """The focused monitor (or the named one) with its scale and its logical size and position.
-        width and height are logical (a 2560x1600 panel at scale 1.6 is 1600x1000); pwidth and pheight are physical."""
+        width and height are logical (a 2560x1600 panel at scale 1.6 is 1600x1000); pwidth and pheight are physical;
+        reserved is the space bars keep, [left, top, right, bottom] as hyprctl reports it ([0, 0, 0, 0] when absent)."""
         mons = self.json("monitors", default=[]) or []
         if not mons:
             raise RuntimeError("hyprctl reported no monitors")
@@ -57,7 +58,7 @@ class Hypr:
         pw, ph = (m["height"], m["width"]) if m.get("transform", 0) % 2 else (m["width"], m["height"])
         s = m["scale"]
         return {"name": m["name"], "x": m["x"], "y": m["y"], "scale": s, "width": round(pw / s), "height": round(ph / s),
-                "pwidth": pw, "pheight": ph}
+                "pwidth": pw, "pheight": ph, "reserved": list(m.get("reserved") or [0, 0, 0, 0])}
 
     def physical(self, v, name=None):
         """Logical px to physical px, for uinput relative moves (uinput moves in physical pixels)."""

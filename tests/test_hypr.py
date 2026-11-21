@@ -12,6 +12,14 @@ class HyprTest(unittest.TestCase):
             self.assertEqual((m["width"], m["height"], m["scale"], m["pwidth"]), (1600, 1000, 1.6, 2560))
             self.assertEqual(h.physical(100), 160)
 
+    def test_monitor_reserved(self):
+        mon = [{"name": "eDP-1", "x": 0, "y": 0, "width": 2560, "height": 1600, "scale": 1.6, "transform": 0, "focused": True,
+                "reserved": [0, 25, 0, 0]}]
+        h = Hypr(run=lambda a, **k: types.SimpleNamespace(stdout=json.dumps(mon)))
+        self.assertEqual(h.monitor()["reserved"], [0, 25, 0, 0])
+        with no_subprocess():
+            self.assertEqual(Hypr(run=FakeRun()).monitor()["reserved"], [0, 0, 0, 0])
+
     def test_rotated_monitor_swaps_sides(self):
         mon = [{"name": "DP-1", "x": 0, "y": 0, "width": 1920, "height": 1080, "scale": 1, "transform": 1, "focused": True}]
         h = Hypr(run=lambda a, **k: types.SimpleNamespace(stdout=json.dumps(mon)))

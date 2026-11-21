@@ -46,7 +46,7 @@ pixels: convert logical ones with `Hypr.physical`.
 
 **`omakit.hypr`**: `Hypr(run=None, sleep=time.sleep)` with `sh(*argv)`, `ev(lua)` (hyprctl eval),
 `json(*what)`, `clients()`, `active_ws()`, `monitor(name=None)` (scale, logical `width` and `height`, physical
-`pwidth` and `pheight`), `physical(v)`, `cursor()`, `move_cursor(x, y)`, `focus_ws(ws)`, `close(address)`,
+`pwidth` and `pheight`, `reserved` bar space), `physical(v)`, `cursor()`, `move_cursor(x, y)`, `focus_ws(ws)`, `close(address)`,
 `layout_mode(ws)` and `set_layout_mode(ws, mode)`. The default runner picks a live `HYPRLAND_INSTANCE_SIGNATURE` when
 the shell carries a stale one. Module level `sh`, `ev`, `clients`, `active_ws`, `monitor` and `cursor` use a shared
 default instance.
@@ -55,6 +55,8 @@ default instance.
 grim in a loop. `region` is `(x, y, w, h)` or `"x,y wxh"` in logical pixels (grim's layout coordinates). `scale=1`
 gives frames at the logical size; `scale="native"` uses the monitor scale for full resolution frames (needed when a
 gifkit `compose` crops in physical pixels).
+`look(region, scale=1)` switches region and scale together mid recording, for a zoom onto one part; keep the
+frame size (half the region at scale 2), or ffmpeg gets frames of two sizes.
 
 ```python
 with Recorder((0, 36, 1280, 764)) as r:
