@@ -2,7 +2,7 @@
 trigger binds). Needs write access to /dev/uinput. Nothing is opened until you enter the context manager.
     with Keyboard() as kb: kb.tap("ctrl+alt+left")
     with Mouse() as m: m.press(); m.move(-3000, 0); m.release()
-Key codes are from linux/input-event-codes.h."""
+Key codes are from linux/input-event-codes.h ("print" is Print Screen, KEY_SYSRQ)."""
 import fcntl, os, string, struct, time
 
 EV_SYN, EV_KEY, EV_REL = 0, 1, 2
@@ -14,7 +14,7 @@ BUTTONS = {"left": 0x110, "right": 0x111, "middle": 0x112}
 KEYS = {
     "escape": 1, "minus": 12, "equal": 13, "backspace": 14, "tab": 15, "bracketleft": 26, "bracketright": 27, "return": 28,
     "ctrl": 29, "semicolon": 39, "apostrophe": 40, "grave": 41, "shift": 42, "backslash": 43, "comma": 51, "dot": 52,
-    "slash": 53, "rshift": 54, "alt": 56, "space": 57, "rctrl": 97, "print": 210, "ralt": 100, "home": 102, "up": 103,
+    "slash": 53, "rshift": 54, "alt": 56, "space": 57, "rctrl": 97, "print": 99, "ralt": 100, "home": 102, "up": 103,
     "pageup": 104, "left": 105, "right": 106, "end": 107, "down": 108, "pagedown": 109, "insert": 110, "delete": 111,
     "super": 125,
 }

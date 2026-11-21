@@ -26,6 +26,7 @@ class Stage:
     def __init__(self, spare=8, dnd=True, restore_files=(), cursor=True, countdown=0, mode=None, hypr=None,
                  state_home=None, out=print):
         self.h = hypr or Hypr()
+        spare = int(spare)  # workspace ids from hyprctl are ints; a string would never match the guard
         self.spare, self.dnd, self.cursor, self.countdown, self.mode, self.out = spare, dnd, cursor, countdown, mode, out
         self.layout_file = os.path.join(state_home or _state_home(), "omarchy", "workspace-layouts", f"{spare}.lua")
         self.files = [os.path.abspath(os.path.expanduser(p)) for p in restore_files]
@@ -79,8 +80,8 @@ class Stage:
         return self.origin
 
     def _mode(self):
-        if self.h.layout_mode(self.spare) != self.mode0:
-            self.h.set_layout_mode(self.spare, self.mode0); self.h.sleep(0.5)
+        # Always set it: Omarchy reads the mode back from its saved file, which a mode set by eval does not write.
+        self.h.set_layout_mode(self.spare, self.mode0); self.h.sleep(0.5)
         return self.mode0
 
     def _file(self, path):

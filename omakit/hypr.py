@@ -76,6 +76,13 @@ class Hypr:
     def close(self, address):
         self.ev(f'local w = hl.get_window("address:{address}"); if w then hl.dispatch(hl.dsp.window.close({{ window = w }})) end')
 
+    def pixel(self, x, y):
+        """The (r, g, b) of one screen pixel at logical (x, y), from a 1x1 grim capture."""
+        raw = self.run(["grim", "-g", f"{round(x)},{round(y)} 1x1", "-t", "ppm", "-"], text=False).stdout
+        if not raw or len(raw) < 3:
+            raise RuntimeError(f"grim gave no pixel at {x},{y}")
+        return tuple(raw[-3:])
+
     def layout_mode(self, ws):
         """dwindle, scrolling or floating, as Omarchy reads it (its saved file, else the default, else Hyprland)."""
         return self.sh("omarchy-hyprland-workspace-layout-current", str(ws)) or "dwindle"

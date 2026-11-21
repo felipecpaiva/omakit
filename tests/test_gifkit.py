@@ -43,6 +43,11 @@ class GifkitTest(unittest.TestCase):
         f = self.frames[0][1]
         self.assertEqual(gifkit.default_font(lambda a, **k: types.SimpleNamespace(stdout=f)), f)
 
+    def test_failed_ffmpeg_shows_its_error(self):
+        bad = lambda a, **k: types.SimpleNamespace(stdout="", stderr="No such filter: 'bogus'", returncode=1)
+        with self.assertRaisesRegex(RuntimeError, "No such filter"):
+            gifkit.build(self.frames, 1, [], self.dir, "d", font="/f", compose="bogus", run=bad)
+
     def test_no_frames(self):
         with self.assertRaises(ValueError):
             gifkit.build([], 1, [], self.dir, "d", font="/f", run=self.run_)

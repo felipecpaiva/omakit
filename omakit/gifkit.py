@@ -31,6 +31,12 @@ def captions(marks, total, font, fontsize=38, color="#e8e6ff", box="#16181dcc", 
         for (a, c), e in zip(marks, ends) if c)
 
 
+def _check(r, argv):
+    # Through a capturing runner a failed ffmpeg would raise with no message: show its stderr first.
+    if getattr(r, "returncode", 0):
+        raise RuntimeError(f"{argv[0]} failed: {(getattr(r, 'stderr', '') or '').strip()}")
+
+
 def build(frames, total, marks, out_dir, name, width=960, fps=12, mp4_width=1280, fontsize=38, compose="", font=None,
           color="#e8e6ff", box="#16181dcc", y="h-90", mp4=True, run=subprocess.run):
     """compose: an ffmpeg filter graph from [0:v] to one unlabeled stream, applied before the captions (for example a
@@ -51,11 +57,13 @@ def build(frames, total, marks, out_dir, name, width=960, fps=12, mp4_width=1280
         src = ["-framerate", str(fps), "-i", os.path.join(seq, "s%05d.jpg")]
         out = [os.path.join(out_dir, name + ".gif")]
         gif = f"{pre}scale={width}:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=96[p];[b][p]paletteuse=dither=bayer:bayer_scale=4"
-        run(["ffmpeg", "-y", "-loglevel", "error", *src, "-filter_complex", gif, "-loop", "0", out[0]], check=True)
+        argv = ["ffmpeg", "-y", "-loglevel", "error", *src, "-filter_complex", gif, "-loop", "0", out[0]]
+        _check(run(argv), argv)
         if mp4:
             out.append(os.path.join(out_dir, name + ".mp4"))
-            run(["ffmpeg", "-y", "-loglevel", "error", *src, "-vf", f"{pre}scale={mp4_width}:-2", "-c:v", "libx264",
-                 "-pix_fmt", "yuv420p", "-crf", "24", "-r", "30", out[1]], check=True)
+            argv = ["ffmpeg", "-y", "-loglevel", "error", *src, "-vf", f"{pre}scale={mp4_width}:-2", "-c:v", "libx264",
+                    "-pix_fmt", "yuv420p", "-crf", "24", "-r", "30", out[1]]
+            _check(run(argv), argv)
         return out
     finally:
         shutil.rmtree(seq, ignore_errors=True)

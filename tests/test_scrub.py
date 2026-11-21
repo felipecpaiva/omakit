@@ -60,6 +60,14 @@ class ScrubTest(unittest.TestCase):
         self.assertEqual(r.returncode, 1)
         self.assertIn("README.md", r.stdout)
 
+    def test_pasted_cr_and_trailing_space_are_ignored(self):
+        with open(self.private, "w") as f:
+            f.write("(?i)fake" + "box\\d+  \r\n")
+        self.write("notes.txt", MACHINE + "\n")
+        r = self.scrub()
+        self.assertEqual(r.returncode, 1, r.stdout)
+        self.assertIn("FOUND a private pattern", r.stdout)
+
     def test_bad_pattern_fails_closed(self):
         with open(self.private, "w") as f:
             f.write("(unclosed\n")

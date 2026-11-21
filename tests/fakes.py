@@ -7,7 +7,8 @@ class FakeRun:
     """Records every argv. Answers hyprctl queries from a small fake desktop state."""
 
     def __init__(self, clients=(), ws=3, mode="dwindle", dnd="off", cursor=(800, 500), scale=1.6, on=None):
-        self.calls, self.clients, self.ws, self.mode, self.dnd = [], list(clients), ws, mode, dnd
+        # saved_mode is what Omarchy reads back (its file or default); a mode set by eval only lands in applied
+        self.calls, self.clients, self.ws, self.saved_mode, self.applied, self.dnd = [], list(clients), ws, mode, None, dnd
         self.cursor, self.scale, self.on = cursor, scale, on or {}
 
     def __call__(self, argv, **kw):
@@ -28,14 +29,14 @@ class FakeRun:
         elif a[:2] == ["hyprctl", "eval"]:
             lua = a[2]
             if "o.workspace_mode" in lua:
-                self.mode = lua.split('mode = "')[1].split('"')[0]
+                self.applied = lua.split('mode = "')[1].split('"')[0]
             if "window.close" in lua:
                 addr = lua.split("address:")[1].split('"')[0]
                 self.clients = [c for c in self.clients if c["address"] != addr]
             if "focus({ workspace" in lua:
                 self.ws = int(lua.split('workspace = "')[1].split('"')[0])
         elif a[0] == "omarchy-hyprland-workspace-layout-current":
-            out = self.mode
+            out = self.saved_mode
         elif a[:3] == ["omarchy-shell", "notifications", "isDnd"]:
             out = self.dnd
         elif a[:3] == ["omarchy-shell", "notifications", "setDnd"]:

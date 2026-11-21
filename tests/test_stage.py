@@ -36,12 +36,12 @@ class StageTest(unittest.TestCase):
         new = os.path.join(self.tmp, "new.json")
         fake = FakeRun(ws=3, mode="dwindle", dnd="off", cursor=(800, 500), on={"gio": trash})
         with self.stage(fake, spare=8, mode="floating", restore_files=[kept, new], countdown=5) as st:
-            self.assertEqual((fake.ws, fake.mode, fake.dnd), (8, "floating", "on"))
+            self.assertEqual((fake.ws, fake.applied, fake.dnd), (8, "floating", "on"))
             os.makedirs(os.path.dirname(layout)); put(layout, "w", "o.workspace_mode(...)")
             put(kept, "wb", b"changed"); put(new, "w", "x")
             fake.clients.append({"address": "0xd1", "workspace": {"id": 8}})
             fake.clients.append({"address": "0xaa", "workspace": {"id": 2}})
-        self.assertEqual((fake.ws, fake.mode, fake.dnd), (3, "dwindle", "off"))
+        self.assertEqual((fake.ws, fake.applied, fake.dnd), (3, "dwindle", "off"))
         self.assertEqual(get(kept, "rb"), b"original")
         self.assertFalse(os.path.exists(new)); self.assertFalse(os.path.exists(layout))
         self.assertEqual([c["address"] for c in fake.clients], ["0xaa"])
@@ -60,7 +60,19 @@ class StageTest(unittest.TestCase):
         with self.stage(fake, spare=8, mode="dwindle"):
             put(layout, "w", "dwindle")
         self.assertEqual(get(layout), "floating")
-        self.assertEqual(fake.mode, "floating")
+        self.assertEqual(fake.applied, "floating")
+
+    def test_a_string_spare_still_guards(self):
+        fake = FakeRun(clients=[{"address": "0x1", "workspace": {"id": 4}}])
+        with self.assertRaises(SystemExit):
+            with self.stage(fake, spare="4"):
+                pass
+
+    def test_mode_is_set_back_even_when_omarchy_reads_the_same(self):
+        fake = FakeRun(mode="dwindle")  # eval does not change what Omarchy reads back
+        with self.stage(fake, spare=8, mode="floating"):
+            self.assertEqual(fake.applied, "floating")
+        self.assertEqual(fake.applied, "dwindle")
 
     def test_restores_after_an_error_and_reports_a_failed_step(self):
         fake = FakeRun(dnd="on", on={"gio": lambda a: (_ for _ in ()).throw(OSError("no gio"))})

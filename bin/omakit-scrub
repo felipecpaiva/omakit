@@ -31,6 +31,7 @@ load() { # load <file> <kind>
   local f=$1 kind=$2 n=0 line re rest
   if [ ! -f "$f" ]; then echo "no $kind patterns file ($f)"; return; fi
   while IFS= read -r line || [ -n "$line" ]; do
+    line=${line%$'\r'}; line=${line%"${line##*[![:space:]]}"}  # a pasted CR or trailing space would join the regex
     [[ -z ${line//[[:space:]]/} || $line == \#* ]] && continue
     re=${line%% !! *}; rest=
     [[ $line == *' !! '* ]] && rest=${line#* !! }
