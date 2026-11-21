@@ -1,0 +1,3 @@
+# Public patterns for omakit-scrub in this repo, one Perl regex per line (see bin/omakit-scrub).
+# Links that leave the repo into a private workspace.
+\.\./\.\./\.\./|\.\./docs/

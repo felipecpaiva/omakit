@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Fails when private data is in a file of a git repo (tracked or new, ignored files skipped).
+# Built-in checks: home paths, LAN addresses, e-mail addresses (noreply is fine), en or em dashes.
+# More patterns come from two files, one Perl regex per line (grep -P, bytes, so ASCII only; (?i) for any case):
+#   <repo>/.scrub-patterns   public patterns of that repo, committed (not scanned for its own patterns)
+#   $OMAKIT_SCRUB_PRIVATE    private patterns (machine names, client names), never committed;
+#                            default ${XDG_CONFIG_HOME:-~/.config}/omakit/scrub-private.patterns
+# A line may end with " !! <pathspec> ..." to skip those paths for that pattern only. Lines starting with # are comments.
+# Usage: omakit-scrub [repo-dir]     exit 0 clean, 1 found something or a bad pattern, 2 not a git repo
+set -u
+export LC_ALL=C
+dir=$(git -C "${1:-.}" rev-parse --show-toplevel 2>/dev/null) || { echo "omakit-scrub: ${1:-.} is not in a git repo"; exit 2; }
+cd "$dir" || exit 2
+repo_file=.scrub-patterns
+private=${OMAKIT_SCRUB_PRIVATE:-${XDG_CONFIG_HOME:-$HOME/.config}/omakit/scrub-private.patterns}
+bad=0
+
+check() { # check <label> <regex> [skip pathspec ...]
+  local label=$1 re=$2 hits p; shift 2
+  local skip=()
+  for p in "$@"; do skip+=(":!$p"); done
+  grep -q -P -- "$re" /dev/null 2>/dev/null
+  if [ $? -eq 2 ]; then echo "BAD PATTERN ($label): $re"; bad=1; return; fi
+  hits=$(git ls-files -z -co --exclude-standard -- . "${skip[@]}" | xargs -0 -r grep -H -n -I -P -- "$re" 2>/dev/null)
+  [ "$label" = "an e-mail address" ] && hits=$(printf '%s\n' "$hits" | grep -v 'noreply')
+  hits=$(printf '%s\n' "$hits" | sed '/^$/d' | head -10)
+  if [ -n "$hits" ]; then echo "FOUND $label:"; echo "$hits"; bad=1; fi
+}
+
+load() { # load <file> <kind>
+  local f=$1 kind=$2 n=0 line re rest
+  if [ ! -f "$f" ]; then echo "no $kind patterns file ($f)"; return; fi
+  while IFS= read -r line || [ -n "$line" ]; do
+    [[ -z ${line//[[:space:]]/} || $line == \#* ]] && continue
+    re=${line%% !! *}; rest=
+    [[ $line == *' !! '* ]] && rest=${line#* !! }
+    # shellcheck disable=SC2086 # rest is a list of pathspecs
+    if [ "$kind" = repo ]; then check "a $kind pattern" "$re" $rest "$repo_file"; else check "a $kind pattern" "$re" $rest; fi
+    n=$((n + 1))
+  done <"$f"
+  echo "$n $kind patterns checked"
+}
+
+check "a home path"        '/home/[a-z]|/Users/[a-z]'
+check "a LAN address"      '\b192\.168\.[0-9]'
+check "an e-mail address"  '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}'
+check "an en or em dash"   '\xe2\x80[\x93\x94]'
+load "$repo_file" repo
+load "$private" private
+if [ $bad = 0 ]; then echo "scrub ok"; else echo "scrub FAILED"; exit 1; fi
